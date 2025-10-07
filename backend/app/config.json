@@ -1,0 +1,46 @@
+{
+  "models": {
+    "xception": {
+      "name": "xception",
+      "path": "models/weights/xception_best.pth",
+      "description": "Fast and reliable baseline",
+      "weight": 0.5,
+      "enabled": true
+    },
+    "efficientnet_b4": {
+      "name": "tf_efficientnet_b4",
+      "path": "models/weights/effnb4_best.pth",
+      "description": "Balanced performance",
+      "weight": 0.5,
+      "enabled": false
+    },
+    "f3net": {
+      "name": "f3net",
+      "path": "models/weights/f3net_best.pth",
+      "description": "Frequency-aware network",
+      "weight": 0.25,
+      "enabled": false
+    },
+    "effort": {
+      "name": "effort_clip",
+      "path": "models/weights/effort_clip_L14_trainOn_FaceForensic.pth",
+      "description": "CLIP-based with Effort SVD",
+      "weight": 0.33,
+      "enabled": true
+    }
+  },
+  "ensemble": {
+    "method": "weighted_average",
+    "threshold": 0.5,
+    "min_models": 2
+  },
+  "device": "cuda",
+  "face_detection": {
+    "min_confidence": 0.85,
+    "min_face_size": 40
+  },
+  "inference": {
+    "batch_size": 1,
+    "generate_gradcam": false
+  }
+}

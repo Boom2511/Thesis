@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: deepfake-detector-api
+    env: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://your-vercel-app.vercel.app
+      - key: MAX_UPLOAD_SIZE
+        value: 10485760
+    healthCheckPath: /health
+    autoDeploy: true
