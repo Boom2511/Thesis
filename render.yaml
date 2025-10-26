@@ -1,0 +1,89 @@
+# Render.com Configuration for Deepfake Detection Backend
+# Platform: Render.com
+# Service Type: Web Service (Python)
+# Last Updated: 2025-10-19
+
+services:
+  - type: web
+    name: deepfake-detection-backend
+    runtime: python
+    plan: starter  # Minimum $7/month - Free tier insufficient for PyTorch + models
+    region: oregon  # Choose: oregon, frankfurt, singapore (closest to users)
+
+    # Repository configuration
+    branch: main
+    rootDir: backend  # Changed: work from backend directory
+
+    # Build configuration
+    buildCommand: |
+      pip install --upgrade pip &&
+      pip install -r requirements.txt
+
+    # Start command
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1
+
+    # Health check endpoint
+    healthCheckPath: /health
+
+    # Auto-deploy on git push
+    autoDeploy: true
+
+    # Environment variables
+    envVars:
+      # Python version
+      - key: PYTHON_VERSION
+        value: "3.10"
+
+      # Model configuration
+      - key: MODEL_DEVICE
+        value: cpu  # Render doesn't provide GPU
+
+      # MLflow - disable for production (ephemeral disk)
+      - key: ENABLE_MLFLOW
+        value: "false"
+
+      # Logging
+      - key: LOG_LEVEL
+        value: INFO
+
+      # CORS origins - UPDATE AFTER DEPLOYING FRONTEND
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:3000
+        # After frontend deployed, change to:
+        # value: https://your-vercel-app.vercel.app,https://*.vercel.app
+
+      # File upload limits
+      - key: MAX_FILE_SIZE_MB
+        value: "10"
+
+      - key: ALLOWED_EXTENSIONS
+        value: jpg,jpeg,png,mp4,avi,mov
+
+      # Rate limiting
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "60"
+
+    # Persistent disk for model weights (CRITICAL!)
+    # Models total: ~1.44 GB (xception 84MB + f3net 87MB + effort 1.2GB)
+    # EfficientNet disabled (68MB)
+    disk:
+      name: model-weights-storage
+      mountPath: /opt/render/project/src/backend/app/models/weights
+      sizeGB: 10  # Generous space for future models
+
+    # Scaling configuration
+    numInstances: 1  # Start with 1, scale if needed
+
+    # Note: First deployment may take 15-30 minutes
+    # - Installs PyTorch (~2GB download)
+    # - Downloads model weights from Git LFS (~1.44GB)
+    # - Compiles Python packages
+
+# Alternative configuration for Standard plan (recommended):
+# Uncomment and modify above service if using Standard plan
+#
+# services:
+#   - type: web
+#     name: deepfake-detection-backend
+#     plan: standard  # $25/month - 2GB RAM, 1 CPU
+#     # ... rest same as above

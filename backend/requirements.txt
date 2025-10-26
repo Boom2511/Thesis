@@ -3,10 +3,11 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-multipart==0.0.6
 pillow==10.2.0
+slowapi==0.1.9
 
 # PyTorch
-torch==2.1.2
-torchvision==0.16.2
+torch==2.2.0
+torchvision==0.17.0
 
 # Models
 timm==0.9.12
@@ -14,15 +15,28 @@ transformers==4.36.0
 
 # Face Detection & Visualization
 facenet-pytorch==2.5.3
-pytorch-grad-cam==1.4.8
+grad-cam
 opencv-python-headless==4.9.0.80
 
-# Utilities
-numpy==1.24.3
+# Utilities (Python 3.12 compatible)
+numpy>=1.26.0
 pydantic==2.5.3
 requests==2.31.0
 python-dotenv==1.0.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+tqdm>=4.66.0
+
+# WebSocket & Video
+websockets>=12.0
+imageio>=2.33.0
+imageio-ffmpeg>=0.4.9
 
 # CLIP (for Effort)
 ftfy==6.1.1
 regex==2023.12.25
+
+# MLflow for experiment tracking
+mlflow>=2.10.0

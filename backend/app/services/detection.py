@@ -9,21 +9,62 @@ from facenet_pytorch import MTCNN
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from models.manager import EnsembleModelManager
+from typing import Optional
+
+# MLflow integration
+try:
+    from services.mlflow_service import MLflowService
+    MLFLOW_AVAILABLE = True
+except ImportError:
+    MLFLOW_AVAILABLE = False
+    MLflowService = None
+
+# Heatmap analyzer
+try:
+    from services.heatmap_analyzer import HeatmapAnalyzer
+    HEATMAP_ANALYZER_AVAILABLE = True
+    print("DEBUG: HeatmapAnalyzer import SUCCESS")
+except ImportError as e:
+    HEATMAP_ANALYZER_AVAILABLE = False
+    HeatmapAnalyzer = None
+    print(f"DEBUG: HeatmapAnalyzer import FAILED: {e}")
 
 class EnsembleDetectionService:
     """Detection service with ensemble of 3 models"""
-    
-    def __init__(self, config_path: str = "config.json"):
-        print("🚀 Initializing Ensemble Detection Service...")
-        
+
+    def __init__(self, config_path: str = "config.json", enable_mlflow: bool = True):
+        print("INFO: Initializing Ensemble Detection Service...")
+
         # Load ensemble model manager
         self.model_manager = EnsembleModelManager(config_path=config_path)
-        
-        # Face detector
-        print("📸 Loading face detector...")
+
+        # Initialize MLflow
+        self.mlflow = None
+        if enable_mlflow and MLFLOW_AVAILABLE:
+            try:
+                self.mlflow = MLflowService(experiment_name="deepfake_detection")
+                self.mlflow.log_model_info(self.model_manager.config)
+            except Exception as e:
+                print(f"WARNING: MLflow initialization failed: {e}")
+                self.mlflow = None
+
+        # Initialize Heatmap Analyzer
+        self.heatmap_analyzer = None
+        if HEATMAP_ANALYZER_AVAILABLE:
+            try:
+                self.heatmap_analyzer = HeatmapAnalyzer()
+                print("SUCCESS: Heatmap Analyzer initialized")
+            except Exception as e:
+                print(f"ERROR: Heatmap Analyzer init failed: {e}")
+                self.heatmap_analyzer = None
+        else:
+            print("WARNING: HeatmapAnalyzer not available (import failed)")
+
+        # Face detector (Force CPU due to torchvision::nms CUDA compatibility issue)
+        print("INFO: Loading face detector...")
         self.face_detector = MTCNN(
             keep_all=False,
-            device=self.model_manager.device,
+            device='cpu',  # Force CPU to avoid torchvision::nms CUDA error
             post_process=False,
             min_face_size=40
         )
@@ -57,8 +98,8 @@ class EnsembleDetectionService:
             model=first_model,
             target_layers=target_layers
         )
-        
-        print("✅ Ensemble Detection Service ready!")
+
+        print("SUCCESS: Ensemble Detection Service ready!")
     
     def _detect_face(self, image: Image.Image) -> tuple:
         """Detect and crop face"""
@@ -72,7 +113,7 @@ class EnsembleDetectionService:
         box = boxes[best_idx]
         confidence = probs[best_idx]
         
-        if confidence < 0.9:
+        if confidence < 0.85:
             raise ValueError(f"Face detection confidence too low ({confidence:.2f})")
         
         # Crop with padding
@@ -111,10 +152,19 @@ class EnsembleDetectionService:
         
         return f"data:image/jpeg;base64,{img_base64}"
     
-    def process(self, image: Image.Image, generate_heatmap: bool = True) -> dict:
+    def process(self, image: Image.Image, generate_heatmap: bool = True,
+                metadata: Optional[dict] = None) -> dict:
         """
         Full ensemble detection pipeline
+
+        Args:
+            image: Input image
+            generate_heatmap: Generate Grad-CAM visualization
+            metadata: Additional metadata for logging (filename, source, etc.)
         """
+        import time
+        start_time = time.time()
+
         # 1. Detect face
         face_image, bbox, face_confidence = self._detect_face(image)
 
@@ -130,7 +180,9 @@ class EnsembleDetectionService:
 
         # 4. Build result
         ensemble = ensemble_results['ensemble']
-        
+
+        processing_time = time.time() - start_time
+
         result = {
             "prediction": ensemble['prediction'],
             "confidence": ensemble['confidence'],
@@ -138,22 +190,46 @@ class EnsembleDetectionService:
             "real_probability": ensemble['real_prob'],
             "face_detection_confidence": face_confidence,
             "total_faces_detected": 1,
-            
+            "processing_time": processing_time,
+
             # Individual model results
             "model_predictions": ensemble_results['individual'],
             "models_used": ensemble_results['models_used'],
             "total_models": ensemble_results['total_models'],
-            
+
             "device": str(self.model_manager.device)
         }
-        
+
         # 5. Generate Grad-CAM
         if generate_heatmap:
             try:
                 cam = self._generate_gradcam(image_tensor)
                 result["gradcam"] = self._create_heatmap_overlay(face_image, cam)
+
+                # 5.1 Analyze heatmap to detect suspicious regions
+                if self.heatmap_analyzer:
+                    try:
+                        is_fake = (ensemble['prediction'] == 'FAKE')
+                        heatmap_analysis = self.heatmap_analyzer.analyze_heatmap(cam, is_fake)
+                        result["heatmap_analysis"] = heatmap_analysis
+                        print(f"DEBUG: Heatmap analysis generated - Top region: {heatmap_analysis['top_3_regions'][0]['region_id']}")
+                    except Exception as e:
+                        print(f"ERROR: Heatmap analysis failed: {e}")
+                        result["heatmap_analysis"] = None
+                else:
+                    print("DEBUG: heatmap_analyzer is None - skipping analysis")
+                    result["heatmap_analysis"] = None
+
             except Exception as e:
-                print(f"⚠️  Grad-CAM generation failed: {e}")
+                print(f"WARNING: Grad-CAM generation failed: {e}")
                 result["gradcam"] = None
-        
+                result["heatmap_analysis"] = None
+
+        # 6. Log to MLflow
+        if self.mlflow:
+            try:
+                self.mlflow.log_prediction("image", result, metadata)
+            except Exception as e:
+                print(f"WARNING: MLflow logging failed: {e}")
+
         return result

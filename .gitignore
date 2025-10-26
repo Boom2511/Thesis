@@ -1,16 +1,76 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Virtual Environment
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
-.venv/
-env/
-.env/
 ENV/
+env/
+*.egg-info/
+dist/
+build/
 
-# IDE/Editor folders
+# Node
+node_modules/
+.next/
+out/
+*.log
+npm-debug.log*
+
+# IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# MLflow
+mlruns/
+
+# Weights (Git LFS)
+*.pth
+*.ckpt
+*.pt
+
+# Temporary
+*.tmp
+*.bak
+*.backup
+.gitignore.backup
+
+# Documentation (keep only essential)
+BACKEND_FIXES_SUMMARY.md
+CHECK_BACKEND_LOGS.md
+DEPLOYMENT_COMPARISON.md
+IMPROVEMENT_RECOMMENDATIONS.md
+IMPROVEMENTS_SUMMARY.md
+RESTART_BACKEND_NOW.md
+RESTART_FRONTEND.md
+SOLUTION_FOUND.md
+SUMMARY_UPDATES.md
+thesis_content.txt
+
+# Old deployment attempts
+hf-space-effort-model-temp.py
+hf-space-requirements-temp.txt
+deploy_to_huggingface.bat
+app.py
+
+# Old folders
+deepfake_detection/
+effort/
+Effort-AIGI-Detection/
+diagrams/
+models/
+
+# Personal files
+Thesis.docx

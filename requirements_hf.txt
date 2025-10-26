@@ -1,0 +1,23 @@
+# Hugging Face Spaces Requirements
+# For FREE GPU-powered deepfake detection
+
+# Core ML frameworks
+torch==2.1.0
+torchvision==0.16.0
+
+# Gradio for web interface
+gradio==4.12.0
+
+# Image processing
+pillow==10.2.0
+opencv-python-headless==4.9.0.80
+
+# Face detection
+facenet-pytorch==2.5.3
+
+# Model architectures
+timm==1.0.3
+transformers==4.36.0
+
+# Utilities
+numpy==1.24.3

@@ -1,14 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)",
-      "Bash(python:*)",
-      "Bash(git clone:*)",
-      "Bash(curl -L \"https://drive.google.com/uc?export=download&id=1m4fyJecABU-Yk3bJ4b1WhUwQa0xCkMLI\" -o effort_ff++.pth)",
-      "Bash(npm install:*)",
-      "Bash(npm run build:*)",
-      "Bash(npx tsc:*)",
-      "Bash(npx eslint:*)"
+      "Bash(git push)",
+      "Bash(git pull:*)",
+      "Bash(git rebase:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

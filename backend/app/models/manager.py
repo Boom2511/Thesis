@@ -17,11 +17,11 @@ class EnsembleModelManager:
         # Setup device
         device_str = self.config.get("device", "cpu")
         if device_str == "cuda" and not torch.cuda.is_available():
-            print("⚠️  CUDA not available, falling back to CPU")
+            print("[WARNING]  CUDA not available, falling back to CPU")
             device_str = "cpu"
         
         self.device = torch.device(device_str)
-        print(f"🔥 Using device: {self.device}")
+        print(f"[INIT] Using device: {self.device}")
         
         # Load models
         self.models = {}
@@ -32,7 +32,7 @@ class EnsembleModelManager:
     
     def _load_all_models(self):
         """Load all enabled models"""
-        print("\n📦 Loading models...")
+        print("\n[LOAD] Loading models...")
         
         model_configs = self.config["models"]
         
@@ -43,9 +43,9 @@ class EnsembleModelManager:
                 if os.path.exists(xception_path):
                     self.models["xception"] = XceptionModel(xception_path, self.device)
                 else:
-                    print(f"⚠️  Xception weights not found at {xception_path}")
+                    print(f"[WARNING]  Xception weights not found at {xception_path}")
             except Exception as e:
-                print(f"❌ Failed to load Xception: {e}")
+                print(f"[ERROR] Failed to load Xception: {e}")
         
         # Load EfficientNet-B4
         if model_configs["efficientnet_b4"]["enabled"]:
@@ -54,9 +54,9 @@ class EnsembleModelManager:
                 if os.path.exists(effnet_path):
                     self.models["efficientnet_b4"] = EfficientNetModel(effnet_path, self.device)
                 else:
-                    print(f"⚠️  EfficientNet weights not found at {effnet_path}")
+                    print(f"[WARNING]  EfficientNet weights not found at {effnet_path}")
             except Exception as e:
-                print(f"❌ Failed to load EfficientNet: {e}")
+                print(f"[ERROR] Failed to load EfficientNet: {e}")
 
         # Load F3Net
         if model_configs.get("f3net", {}).get("enabled", False):
@@ -65,9 +65,9 @@ class EnsembleModelManager:
                 if os.path.exists(f3net_path):
                     self.models["f3net"] = F3NetModel(f3net_path, self.device)
                 else:
-                    print(f"⚠️  F3Net weights not found at {f3net_path}")
+                    print(f"[WARNING]  F3Net weights not found at {f3net_path}")
             except Exception as e:
-                print(f"❌ Failed to load F3Net: {e}")
+                print(f"[ERROR] Failed to load F3Net: {e}")
 
         # Load Effort
         if model_configs["effort"]["enabled"]:
@@ -75,26 +75,26 @@ class EnsembleModelManager:
                 effort_path = model_configs["effort"]["path"]
                 self.models["effort"] = EffortModel(effort_path, self.device)
             except Exception as e:
-                print(f"❌ Failed to load Effort: {e}")
+                print(f"[ERROR] Failed to load Effort: {e}")
         
         if not self.models:
-            raise RuntimeError("❌ No models loaded! Check your config and weights files.")
+            raise RuntimeError("[ERROR] No models loaded! Check your config and weights files.")
         
-        print(f"\n✅ Loaded {len(self.models)} models: {list(self.models.keys())}")
+        print(f"\n[OK] Loaded {len(self.models)} models: {list(self.models.keys())}")
     
     def _warmup(self):
         """Warm up all models"""
-        print("\n🔥 Warming up models...")
+        print("\n[INIT] Warming up models...")
         dummy_input = torch.randn(1, 3, 224, 224).to(self.device)
-        
+
         for name, model in self.models.items():
             try:
                 model.predict(dummy_input)
-                print(f"   ✓ {name} ready")
+                print(f"   [OK] {name} ready")
             except Exception as e:
-                print(f"   ✗ {name} failed: {e}")
-        
-        print("✅ All models ready!\n")
+                print(f"   [ERROR] {name} failed: {e}")
+
+        print("[OK] All models ready!\n")
     
     @torch.no_grad()
     def predict_ensemble(self, image_tensor: torch.Tensor) -> Dict:
@@ -137,7 +137,7 @@ class EnsembleModelManager:
                 total_weight += weight
                 
             except Exception as e:
-                print(f"⚠️  Model {name} prediction failed: {e}")
+                print(f"[WARNING]  Model {name} prediction failed: {e}")
         
         # Normalize weights
         if total_weight > 0:
